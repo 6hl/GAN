@@ -126,10 +126,9 @@ class DCGAN(trainer):
     
     def train(self):
         self.save_imgs = []
-        skip = len(self.dataset) -1
         start_time = perf_counter()
         for e in range(self.epochs):
-            for idx, samples in enumerate(self.dataset):
+            for samples in self.dataset:
                 self.disc.zero_grad()
 
                 samples = samples[0].to(self.device)
@@ -148,7 +147,6 @@ class DCGAN(trainer):
                 loss2.backward()
 
                 tot_loss = loss1.mean().item() + loss2.mean().item()
-                # tot_loss.backward()
                 self.dopt.step()
 
                 self.gen.zero_grad()
@@ -158,8 +156,7 @@ class DCGAN(trainer):
                 loss3.backward()
                 self.gopt.step()
             
-            if tot_loss > 0.4 and tot_loss < 0.6:
-            # if (e+1) % 20 == 0:
+            if (e+1) % 20 == 0:
                 print(f"Epoch: {e+1}, Loss Disc: {tot_loss:.4f}, Loss Gen: {loss3.item():.4f}, Time: {perf_counter()-start_time:.4f}")
                 self.save_test(train_num=e)
                 start_time = perf_counter()
@@ -191,7 +188,7 @@ class WGAN(trainer):
         start_time = perf_counter()
 
         for it in range(self.iterations):
-            for n in range(self.n_critic):
+            for _ in range(self.n_critic):
                 self.disc.zero_grad()
 
                 samples = next(iter(self.dataset))
@@ -218,7 +215,7 @@ class WGAN(trainer):
             self.gen.zero_grad()
             labels.fill_(self.labels["real"])
             predict = self.disc(gen_fake)
-            gen_loss = -predict.mean() #Neg?
+            gen_loss = -predict.mean()
             gen_loss.backward()
             self.gopt.step()
 
@@ -243,7 +240,6 @@ class ACGAN(trainer):
         self.gen.apply(self._init_model)
         self.disc.apply(self._init_model)
         self._init_training()
-        # self._init_training(g_lr=0.0001, d_lr=0.0004)
 
     def _accuracy(self, preds, labels):
         preds_ = preds.data.max(1)[1]
@@ -255,7 +251,7 @@ class ACGAN(trainer):
         self.save_imgs = []
         start_time = perf_counter()
         for e in range(self.epochs):
-            for idx, (samples, classes) in enumerate(self.dataset):
+            for samples, classes in self.dataset:
                 self.disc.zero_grad()
 
                 samples, classes = samples.to(self.device), classes.to(self.device)
@@ -291,8 +287,7 @@ class ACGAN(trainer):
 
                 acc = self._accuracy(pred_class, classes)
             tot_disc_loss = pred_loss.item()+pred_loss_fake.item()
-            if  tot_disc_loss> 0.4 and tot_disc_loss < 0.6 and (e+1)>50:
-            # if (e+1) % 50 == 0:
+            if (e+1) % 50 == 0:
                 print(f"Epoch: {e+1}, Loss Disc: {tot_disc_loss:.4f}, Loss Gen: {gen_loss.item():.4f}, Accuracy: {acc:0.2f}, Time: {perf_counter()-start_time:.1f}")
                 self.save_test(train_num=e)
                 start_time = perf_counter()

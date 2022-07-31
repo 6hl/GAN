@@ -2,10 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class Generator(nn.Module):
     def __init__(self, num_c=3, in_size=100, dim=64):
-        super(Generator, self).__init__()
+        super().__init__()
         self.conv1 = nn.ConvTranspose2d(in_size, dim * 8, kernel_size=4, stride=1, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(dim * 8)
         self.conv2 = nn.ConvTranspose2d(dim * 8, dim * 4, kernel_size=4, stride=2, padding=1, bias=False)
@@ -26,7 +25,7 @@ class Generator(nn.Module):
     
 class Discriminator(nn.Module):
     def __init__(self, num_c=3, dim=64, model=None):
-        super(Discriminator, self).__init__()
+        super().__init__()
         self.model = model
         self.conv1 = nn.Conv2d(num_c, dim, kernel_size=4, stride=2, padding=1, bias=False)
         self.conv2 = nn.Conv2d(dim, dim*2, kernel_size=4, stride=2, padding=1, bias=False)
@@ -50,9 +49,9 @@ class Discriminator(nn.Module):
 
 class ACGenerator(nn.Module):
     ''' Implementation for cifar10 only: https://arxiv.org/pdf/1610.09585v4.pdf '''
+
     def __init__(self, num_c=3, in_size=110, dim=384):
-        super(ACGenerator, self).__init__()
-        #384, 768
+        super().__init__()
         self.dim = int(dim)
         if dim != 384:
             final_dim = 64
@@ -78,35 +77,28 @@ class ACGenerator(nn.Module):
 
 class ACDiscriminator(nn.Module):
     def __init__(self, num_c=3, dim=16, class_num=10):
-        super(ACDiscriminator, self).__init__()
-        # 3, 16
+        super().__init__()
         self.conv1 = nn.Conv2d(num_c, dim, kernel_size=3, stride=2, padding=1, bias=False)
-        # 16, 32
         self.conv2 = nn.Conv2d(dim, dim*2, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(dim * 2)
-        # 32, 64
         self.conv3 = nn.Conv2d(dim*2, dim*4, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn3 = nn.BatchNorm2d(dim * 4)
-        # 64, 128
         self.conv4 = nn.Conv2d(dim*4, dim*8, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn4 = nn.BatchNorm2d(dim * 8)
-        # 128, 256
         self.conv5 = nn.Conv2d(dim*8, dim*16, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn5 = nn.BatchNorm2d(dim * 16)
-        # 256, 512
         self.conv6 = nn.Conv2d(dim*16, dim*32, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn6 = nn.BatchNorm2d(dim * 32)
-        # 4*4*512, 8*8*512
         self.dense1 = nn.Linear(4*4*512, 1)
         self.dense2 = nn.Linear(4*4*512, class_num)
 
     def forward(self, x):
-        x = F.dropout(F.leaky_relu(self.conv1(x), 0.2))#, 0.5)
-        x = F.dropout(F.leaky_relu(self.bn2(self.conv2(x)), 0.2))#, 0.5)
-        x = F.dropout(F.leaky_relu(self.bn3(self.conv3(x)), 0.2))#, 0.5)
-        x = F.dropout(F.leaky_relu(self.bn4(self.conv4(x)), 0.2))#, 0.5)
-        x = F.dropout(F.leaky_relu(self.bn5(self.conv5(x)), 0.2))#, 0.5)
-        x = F.dropout(F.leaky_relu(self.bn6(self.conv6(x)), 0.2))#, 0.5)
+        x = F.dropout(F.leaky_relu(self.conv1(x), 0.2))
+        x = F.dropout(F.leaky_relu(self.bn2(self.conv2(x)), 0.2))
+        x = F.dropout(F.leaky_relu(self.bn3(self.conv3(x)), 0.2))
+        x = F.dropout(F.leaky_relu(self.bn4(self.conv4(x)), 0.2))
+        x = F.dropout(F.leaky_relu(self.bn5(self.conv5(x)), 0.2))
+        x = F.dropout(F.leaky_relu(self.bn6(self.conv6(x)), 0.2))
         x = x.view(-1, 4*4*512)
         tf = torch.sigmoid(self.dense1(x))
         pred = F.log_softmax(self.dense2(x), dim=1)
